@@ -45,6 +45,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -62,7 +63,6 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
 
     private boolean aIsBannerLoaded = false;
     private boolean aIsInterstitialLoaded = false;
-    private boolean aIsRewardedLoaded = false;
     private boolean aIsRewardedInterstitialLoaded = false;
 
     private FrameLayout aGodotLayout; // store the godot layout
@@ -71,7 +71,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     private AdView aAdView; //view of banner
     private AdSize aAdSize; //adSize of banner
     private InterstitialAd aInterstitialAd;
-    private RewardedAd aRewardedAd;
+    private Hashtable<String, RewardedAd> rewardedAds;
     private RewardedInterstitialAd aRewardedInterstitialAd;
 
     public AdMob(Godot godot) {
@@ -116,8 +116,8 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     public boolean get_is_interstitial_loaded() {
         return aIsInterstitialLoaded;
     }
-    public boolean get_is_rewarded_loaded() {
-        return aIsRewardedLoaded;
+    public boolean get_is_rewarded_loaded(String pAdUnitId) {
+        return rewardedAds.containsKey(pAdUnitId) && rewardedAds.get(pAdUnitId) != null;
     }
     public boolean get_is_rewarded_interstitial_loaded() {
         return aIsRewardedInterstitialLoaded;
@@ -165,13 +165,14 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         signals.add(new SignalInfo("interstitial_closed"));
         signals.add(new SignalInfo("interstitial_recorded_impression"));
 
-        signals.add(new SignalInfo("rewarded_ad_failed_to_load", Integer.class));
-        signals.add(new SignalInfo("rewarded_ad_loaded"));
-        signals.add(new SignalInfo("rewarded_ad_failed_to_show", Integer.class));
-        signals.add(new SignalInfo("rewarded_ad_opened"));
-        signals.add(new SignalInfo("rewarded_ad_clicked"));
-        signals.add(new SignalInfo("rewarded_ad_closed"));
-        signals.add(new SignalInfo("rewarded_ad_recorded_impression"));
+        signals.add(new SignalInfo("rewarded_ad_failed_to_load", String.class, Integer.class));
+        signals.add(new SignalInfo("rewarded_ad_loaded", String.class));
+        signals.add(new SignalInfo("rewarded_ad_failed_to_show", String.class, Integer.class));
+        signals.add(new SignalInfo("rewarded_ad_opened", String.class));
+        signals.add(new SignalInfo("rewarded_ad_clicked", String.class));
+        signals.add(new SignalInfo("rewarded_ad_closed", String.class));
+        signals.add(new SignalInfo("rewarded_ad_recorded_impression", String.class));
+        signals.add(new SignalInfo("rewarded_ad_earned_rewarded", String.class, String.class, Integer.class));
 
         signals.add(new SignalInfo("rewarded_interstitial_ad_failed_to_load", Integer.class));
         signals.add(new SignalInfo("rewarded_interstitial_ad_loaded"));
@@ -180,8 +181,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         signals.add(new SignalInfo("rewarded_interstitial_ad_clicked"));
         signals.add(new SignalInfo("rewarded_interstitial_ad_closed"));
         signals.add(new SignalInfo("rewarded_interstitial_ad_recorded_impression"));
-
-        signals.add(new SignalInfo("user_earned_rewarded", String.class, Integer.class));
+        signals.add(new SignalInfo("rewarded_interstitial_earned_rewarded", String.class, Integer.class));
 
         return signals;
     }
@@ -589,72 +589,72 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     //REWARDED
     public void load_rewarded(final String pAdUnitId)
     {
+        if (rewardedAds == null) rewardedAds = new Hashtable<>();
+        if (!rewardedAds.containsKey(pAdUnitId)) rewardedAds.put(pAdUnitId, null);
         aActivity.runOnUiThread(() -> {
             if (aIsInitialized) {
                 RewardedAd.load(aActivity, pAdUnitId, getAdRequest(), new RewardedAdLoadCallback(){
                     @Override
                     public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
                         // Handle the error.
-                        aRewardedAd = null;
-                        emitSignal("rewarded_ad_failed_to_load", loadAdError.getCode());
+                        rewardedAds.put(pAdUnitId, null);
+                        emitSignal("rewarded_ad_failed_to_load", pAdUnitId, loadAdError.getCode());
 
                     }
 
                     @Override
                     public void onAdLoaded(@NonNull RewardedAd rewardedAd) {
-                        aRewardedAd = rewardedAd;
-                        emitSignal("rewarded_ad_loaded");
-
-                        aIsRewardedLoaded = true;
+                        rewardedAds.put(pAdUnitId, rewardedAd);
+                        emitSignal("rewarded_ad_loaded", pAdUnitId);
                     }
                 });
             }
         });
     }
 
-    public void show_rewarded()
+    public void show_rewarded(final String pAdUnitId)
     {
         aActivity.runOnUiThread(() -> {
             if (aIsInitialized) {
-                if (aRewardedAd != null) {
+                if (get_is_rewarded_loaded(pAdUnitId)) {
+                    RewardedAd aRewardedAd = rewardedAds.get(pAdUnitId);
                     aRewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
                         @Override
                         public void onAdClicked() {
                             // Called when a click is recorded for an ad.
-                            emitSignal("rewarded_ad_clicked");
+                            emitSignal("rewarded_ad_clicked", pAdUnitId);
                         }
 
                         @Override
                         public void onAdDismissedFullScreenContent() {
                             // Called when ad is dismissed.
-                            aRewardedAd = null;
-                            emitSignal("rewarded_ad_closed");
-                            aIsRewardedLoaded = false;
+                            rewardedAds.put(pAdUnitId, null);
+                            emitSignal("rewarded_ad_closed", pAdUnitId);
                         }
 
                         @Override
                         public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
                             // Called when ad fails to show.
-                            aRewardedAd = null;
-                            emitSignal("rewarded_ad_failed_to_show", adError.getCode());
+                            rewardedAds.put(pAdUnitId, null);
+                            emitSignal("rewarded_ad_failed_to_show", pAdUnitId, adError.getCode());
                         }
 
                         @Override
                         public void onAdImpression() {
                             // Called when an impression is recorded for an ad.
-                            emitSignal("rewarded_ad_recorded_impression");
+                            emitSignal("rewarded_ad_recorded_impression", pAdUnitId);
                         }
 
                         @Override
                         public void onAdShowedFullScreenContent() {
                             // Called when ad is shown.
-                            emitSignal("rewarded_ad_opened");
+                            emitSignal("rewarded_ad_opened", pAdUnitId);
                         }
                     });
 
                     aRewardedAd.show(aActivity, rewardItem -> {
                         // Handle the reward.
-                        emitSignal("user_earned_rewarded", rewardItem.getType(), rewardItem.getAmount());
+                        emitSignal("rewarded_ad_earned_rewarded", pAdUnitId, rewardItem.getType(), rewardItem.getAmount());
                     });
                 }
             }
@@ -729,7 +729,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
 
                     aRewardedInterstitialAd.show(aActivity, rewardItem -> {
                         // Handle the reward.
-                        emitSignal("user_earned_rewarded", rewardItem.getType(), rewardItem.getAmount());
+                        emitSignal("rewarded_interstitial_earned_rewarded", rewardItem.getType(), rewardItem.getAmount());
                     });
                 }
             }
