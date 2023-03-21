@@ -2,6 +2,7 @@ package com.poing.admob;
 
 import org.godotengine.godot.Godot;
 import org.godotengine.godot.plugin.SignalInfo;
+import org.godotengine.godot.plugin.UsedByGodot;
 
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.FullScreenContentCallback;
@@ -78,47 +79,23 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         super(godot);
     }
 
-    @NonNull
-    @Override
-    public List<String> getPluginMethods() {
-        return Arrays.asList(
-                "initialize",
-                "load_banner",
-                "destroy_banner",
-                "show_banner",
-                "hide_banner",
-                "load_interstitial",
-                "show_interstitial",
-                "load_rewarded",
-                "show_rewarded",
-                "load_rewarded_interstitial",
-                "show_rewarded_interstitial",
-                "request_user_consent",
-                "reset_consent_state",
-                "get_banner_width",
-                "get_banner_height",
-                "get_banner_width_in_pixels",
-                "get_banner_height_in_pixels",
-                "get_is_initialized",
-                "get_is_banner_loaded",
-                "get_is_interstitial_loaded",
-                "get_is_rewarded_loaded",
-                "get_is_rewarded_interstitial_loaded"
-        );
-    }
-
+    @UsedByGodot
     public boolean get_is_initialized() {
         return aIsInitialized;
     }
+    @UsedByGodot
     public boolean get_is_banner_loaded() {
         return aIsBannerLoaded;
     }
+    @UsedByGodot
     public boolean get_is_interstitial_loaded() {
         return aIsInterstitialLoaded;
     }
+    @UsedByGodot
     public boolean get_is_rewarded_loaded(String pAdUnitId) {
         return rewardedAds.containsKey(pAdUnitId) && rewardedAds.get(pAdUnitId) != null;
     }
+    @UsedByGodot
     public boolean get_is_rewarded_interstitial_loaded() {
         return aIsRewardedInterstitialLoaded;
     }
@@ -187,6 +164,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
 
 
+    @UsedByGodot
     public void initialize(boolean pIsForChildDirectedTreatment, String pMaxAdContentRating, boolean pIsReal, boolean pIsTestEuropeUserConsent) {
         if (!aIsInitialized){
             aIsForChildDirectedTreatment = pIsForChildDirectedTreatment;
@@ -241,6 +219,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         );
     }
 
+    @UsedByGodot
     public void request_user_consent() {
         aConsentInformation = UserMessagingPlatform.getConsentInformation(aActivity);
 
@@ -271,6 +250,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         );
     }
 
+    @UsedByGodot
     public void reset_consent_state() {
         aConsentInformation.reset(); //https://developers.google.com/admob/ump/android/quick-start#reset_consent_state
     }
@@ -330,6 +310,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
 
     //BANNER only one is allowed, please do not try to place more than one, as your ads on the app may have the chance to be banned!
+    @UsedByGodot
     public void load_banner(final String pAdUnitId, final int pPosition, final String pSize, final boolean pShowInstantly, final boolean pRespectSafeArea) {
         aActivity.runOnUiThread(() -> {
             if (aIsInitialized) {
@@ -448,6 +429,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(aActivity, adWidth);
     }
 
+    @UsedByGodot
     public void destroy_banner()//IF THIS METHOD IS CALLED ON GODOT, THE BANNER WILL ONLY APPEAR AGAIN IF THE BANNER IS LOADED AGAIN
     {
         aActivity.runOnUiThread(() -> {
@@ -461,6 +443,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
             }
         });
     }
+    @UsedByGodot
     public void show_banner()
     {
         aActivity.runOnUiThread(() -> {
@@ -472,6 +455,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
             }
         });
     }
+    @UsedByGodot
     public void hide_banner()
     {
         aActivity.runOnUiThread(() -> {
@@ -484,6 +468,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         });
     }
 
+    @UsedByGodot
     public int get_banner_width() {
         if (aIsInitialized && aAdSize != null) {
             return aAdSize.getWidth();
@@ -491,6 +476,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         return 0;
     }
 
+    @UsedByGodot
     public int get_banner_height() {
         if (aIsInitialized && aAdSize != null) {
             return aAdSize.getHeight();
@@ -498,6 +484,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         return 0;
     }
 
+    @UsedByGodot
     public int get_banner_width_in_pixels() {
         if (aIsInitialized && aAdSize != null) {
             return aAdSize.getWidthInPixels(aActivity);
@@ -505,6 +492,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         return 0;
     }
 
+    @UsedByGodot
     public int get_banner_height_in_pixels() {
         if (aIsInitialized && aAdSize != null) {
             return aAdSize.getHeightInPixels(aActivity);
@@ -515,6 +503,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
 
     //BANNER
     //INTERSTITIAL
+    @UsedByGodot
     public void load_interstitial(final String pAdUnitId)
     {
         aActivity.runOnUiThread(() -> {
@@ -539,6 +528,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
             }
         });
     }
+    @UsedByGodot
     public void show_interstitial()
     {
         aActivity.runOnUiThread(() -> {
@@ -587,6 +577,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
     //INTERSTITIAL
     //REWARDED
+    @UsedByGodot
     public void load_rewarded(final String pAdUnitId)
     {
         if (rewardedAds == null) rewardedAds = new Hashtable<>();
@@ -612,6 +603,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         });
     }
 
+    @UsedByGodot
     public void show_rewarded(final String pAdUnitId)
     {
         aActivity.runOnUiThread(() -> {
@@ -662,6 +654,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
     //
 
+    @UsedByGodot
     public void load_rewarded_interstitial(final String pAdUnitId)
     {
         aActivity.runOnUiThread(() -> {
@@ -686,6 +679,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
 
 
+    @UsedByGodot
     public void show_rewarded_interstitial()
     {
         aActivity.runOnUiThread(() -> {
