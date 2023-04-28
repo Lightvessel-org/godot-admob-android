@@ -5,6 +5,7 @@ import org.godotengine.godot.plugin.SignalInfo;
 import org.godotengine.godot.plugin.UsedByGodot;
 
 import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdLoader;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.MobileAds; //used for initialize
 import com.google.android.gms.ads.LoadAdError;
@@ -18,6 +19,9 @@ import com.google.android.gms.ads.interstitial.InterstitialAd; //interstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
 import com.google.android.gms.ads.RequestConfiguration;
+import com.google.android.gms.ads.nativead.MediaView;
+import com.google.android.gms.ads.nativead.NativeAd;
+import com.google.android.gms.ads.nativead.NativeAdView;
 import com.google.android.gms.ads.rewarded.RewardedAd; //rewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 
@@ -35,6 +39,7 @@ import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.Gravity;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.FrameLayout; //get Godot Layout
 import android.view.View;
@@ -50,7 +55,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
-public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
+public class
+AdMob extends org.godotengine.godot.plugin.GodotPlugin {
 
     private boolean aIsInitialized = false;
     private Activity aActivity;
@@ -63,6 +69,7 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     private boolean aIsBannerLoaded = false;
     private boolean aIsInterstitialLoaded = false;
     private boolean aIsRewardedInterstitialLoaded = false;
+    private boolean aNativeAdLoaded = false;
 
     private FrameLayout aGodotLayout; // store the godot layout
     private FrameLayout.LayoutParams aGodotLayoutParams; // Store the godot layout params
@@ -72,6 +79,8 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     private InterstitialAd aInterstitialAd;
     private final Hashtable<String, RewardedAd> rewardedAds = new Hashtable<>();
     private RewardedInterstitialAd aRewardedInterstitialAd;
+    private NativeAdView aNativeAdView;
+    private NativeAd aNativeAd;
 
     public AdMob(Godot godot) {
         super(godot);
@@ -96,6 +105,12 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     @UsedByGodot
     public boolean get_is_rewarded_interstitial_loaded() {
         return aIsRewardedInterstitialLoaded;
+    }
+
+    @UsedByGodot
+    public boolean get_is_native_ad_loaded()
+    {
+        return aNativeAdLoaded;
     }
 
     @Override
@@ -157,6 +172,14 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         signals.add(new SignalInfo("rewarded_interstitial_ad_closed"));
         signals.add(new SignalInfo("rewarded_interstitial_ad_recorded_impression"));
         signals.add(new SignalInfo("rewarded_interstitial_earned_rewarded", String.class, Integer.class));
+
+        signals.add(new SignalInfo("native_ad_loaded"));
+        signals.add(new SignalInfo("native_ad_failed_to_load", Integer.class));
+        signals.add(new SignalInfo("native_ad_opened"));
+        signals.add(new SignalInfo("native_ad_clicked"));
+        signals.add(new SignalInfo("native_ad_closed"));
+        signals.add(new SignalInfo("native_ad_recorded_impression"));
+        signals.add(new SignalInfo("native_ad_destroyed"));
 
         return signals;
     }
@@ -646,8 +669,8 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
             }
         });
     }
-    //
-
+    //REWARDED
+    //REWARDED INTERSTITIAL
     @UsedByGodot
     public void load_rewarded_interstitial(final String pAdUnitId)
     {
@@ -723,6 +746,94 @@ public class AdMob extends org.godotengine.godot.plugin.GodotPlugin {
             }
         });
     }
+    //REWARDED INTERSTITIAL
+    //NATIVE ADS
+    @UsedByGodot
+    public void load_native(final String pAdUnitId, final int[] pSize, final int[] pMargins)
+    {
+        aActivity.runOnUiThread(() -> {
+            if (aIsInitialized) {
+                if (aNativeAdView != null) destroy_native();
+                if (aAdView != null) destroy_banner();
+                AdLoader adLoader = new AdLoader.Builder(aActivity, pAdUnitId)
+                        .forNativeAd(nativeAd -> {
+                            // If this callback occurs after the activity is destroyed, you must call
+                            // destroy and return or you may get a memory leak.
+                            boolean isDestroyed = aActivity.isDestroyed();
+                            if (isDestroyed || aActivity.isFinishing() || aActivity.isChangingConfigurations()) {
+                                nativeAd.destroy();
+                                return;
+                            }
+                            //SECURE TO DESTROY THE NATIVE AND THE BANNER
+                            if (aNativeAdView != null) destroy_native();
+                            if (aAdView != null) destroy_banner();
+                            aNativeAd = nativeAd;
+                            aNativeAdView = (NativeAdView) aActivity.getLayoutInflater().inflate(R.layout.ad_native, null);
+                            mapNativeAdToLayout(aNativeAd, aNativeAdView);
+                            aGodotLayoutParams = new FrameLayout.LayoutParams(pSize[0], pSize[1]);
+                            aGodotLayoutParams.setMargins(pMargins[0], pMargins[1], 0, 0);
+                            aGodotLayout.removeAllViews();
+                            aGodotLayout.addView(aNativeAdView, aGodotLayoutParams);
+                            emitSignal("native_ad_loaded");
+                            aNativeAdLoaded = true;
+                        })
+                        .withAdListener(new AdListener() {
+                            @Override
+                            public void onAdFailedToLoad(@NonNull LoadAdError adError) {
+                                // Code to be executed when an ad request fails.
+                                emitSignal("native_ad_failed_to_load", adError.getCode());
+                                aNativeAdLoaded = false;
+                            }
+                            @Override
+                            public void onAdOpened() {
+                                // Code to be executed when the ad is displayed.
+                                emitSignal("native_ad_opened");
+                            }
+                            @Override
+                            public void onAdClicked() {
+                                // Code to be executed when the native ad is closed.
+                                emitSignal("native_ad_clicked");
+                            }
+                            @Override
+                            public void onAdClosed() {
+                                // Code to be executed when the native ad is closed.
+                                emitSignal("native_ad_closed");
+                            }
+                            @Override
+                            public void onAdImpression() {
+                                // Code to be executed when the user is about to return
+                                // to the app after tapping on an ad.
+                                emitSignal("native_ad_recorded_impression");
+                            }
+                        })
+                        .build();
+                adLoader.loadAd(getAdRequest());
+            }
+        });
+    }
+    @UsedByGodot
+    public void destroy_native()//IF THIS METHOD IS CALLED ON GODOT, THE NATIVE AD WILL ONLY APPEAR AGAIN IF THE AD IS LOADED AGAIN
+    {
+        aActivity.runOnUiThread(() -> {
+            if (aIsInitialized) {
+                if (aNativeAdView != null) {
+                    aGodotLayout.removeView(aNativeAdView);
+                    aNativeAdView.destroy();
+                    aNativeAdView = null;
+                    aNativeAd.destroy();
+                    aNativeAd = null;
+                    emitSignal("native_ad_destroyed");
+                    aNativeAdLoaded = false;
+                }
+            }
+        });
+    }
+    private void mapNativeAdToLayout(NativeAd adFromGoogle, NativeAdView myAdView)
+    {
+        myAdView.setMediaView((MediaView) myAdView.findViewById(R.id.ad_media));
+        myAdView.setNativeAd(adFromGoogle);
+    }
+    //NATIVE ADS
 
     /**
      * Generate MD5 for the deviceID
