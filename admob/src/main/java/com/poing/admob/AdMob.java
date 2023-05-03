@@ -333,6 +333,7 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     public void load_banner(final String pAdUnitId, final int pPosition, final String pSize, final boolean pShowInstantly, final boolean pRespectSafeArea) {
         aActivity.runOnUiThread(() -> {
             if (aIsInitialized) {
+                if (aNativeAdView != null) destroy_native();
                 if (aAdView != null) destroy_banner();
                 aAdView = new AdView(aActivity);
 
