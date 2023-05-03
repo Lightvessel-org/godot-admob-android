@@ -19,7 +19,6 @@ import com.google.android.gms.ads.interstitial.InterstitialAd; //interstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
 import com.google.android.gms.ads.RequestConfiguration;
-import com.google.android.gms.ads.nativead.MediaView;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdView;
 import com.google.android.gms.ads.rewarded.RewardedAd; //rewardedAd
@@ -33,13 +32,14 @@ import com.google.android.ump.ConsentRequestParameters;
 import com.google.android.ump.UserMessagingPlatform;
 
 import android.app.Activity;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.Gravity;
-import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.FrameLayout; //get Godot Layout
 import android.view.View;
@@ -108,7 +108,7 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
 
     @UsedByGodot
-    public boolean get_is_native_ad_loaded()
+    public boolean get_is_native_loaded()
     {
         return aNativeAdLoaded;
     }
@@ -173,13 +173,13 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
         signals.add(new SignalInfo("rewarded_interstitial_ad_recorded_impression"));
         signals.add(new SignalInfo("rewarded_interstitial_earned_rewarded", String.class, Integer.class));
 
-        signals.add(new SignalInfo("native_ad_loaded"));
-        signals.add(new SignalInfo("native_ad_failed_to_load", Integer.class));
-        signals.add(new SignalInfo("native_ad_opened"));
-        signals.add(new SignalInfo("native_ad_clicked"));
-        signals.add(new SignalInfo("native_ad_closed"));
-        signals.add(new SignalInfo("native_ad_recorded_impression"));
-        signals.add(new SignalInfo("native_ad_destroyed"));
+        signals.add(new SignalInfo("native_loaded"));
+        signals.add(new SignalInfo("native_failed_to_load", Integer.class));
+        signals.add(new SignalInfo("native_opened"));
+        signals.add(new SignalInfo("native_clicked"));
+        signals.add(new SignalInfo("native_closed"));
+        signals.add(new SignalInfo("native_recorded_impression"));
+        signals.add(new SignalInfo("native_destroyed"));
 
         return signals;
     }
@@ -749,7 +749,7 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     //REWARDED INTERSTITIAL
     //NATIVE ADS
     @UsedByGodot
-    public void load_native(final String pAdUnitId, final int[] pSize, final int[] pMargins)
+    public void load_native(final String pAdUnitId, final float[] pSize, final float[] pMargins)
     {
         aActivity.runOnUiThread(() -> {
             if (aIsInitialized) {
@@ -770,44 +770,74 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
                             aNativeAd = nativeAd;
                             aNativeAdView = (NativeAdView) aActivity.getLayoutInflater().inflate(R.layout.ad_native, null);
                             mapNativeAdToLayout(aNativeAd, aNativeAdView);
-                            aGodotLayoutParams = new FrameLayout.LayoutParams(pSize[0], pSize[1]);
-                            aGodotLayoutParams.setMargins(pMargins[0], pMargins[1], 0, 0);
+
+                            Point screenSize = getScreenSize();
+
+                            aGodotLayoutParams = new FrameLayout.LayoutParams((int) (pSize[0]), (int) (pSize[1]));
+                            aGodotLayoutParams.setMargins((int) (pMargins[0]), (int) (pMargins[1]), 0, 0);
                             aGodotLayout.removeAllViews();
                             aGodotLayout.addView(aNativeAdView, aGodotLayoutParams);
-                            emitSignal("native_ad_loaded");
+                            hide_native();
+                            emitSignal("native_loaded");
                             aNativeAdLoaded = true;
+                            Log.d("AdMob", "Screen size is: x:" + screenSize.x + " y:" + screenSize.y);
+                            Log.d("AdMob", "Native ad stats are: x:" + (int) (pMargins[0]) + " y:" + (int) (pMargins[1]) + " w:" + (int) (pSize[0]) + " h:" + (int) (pSize[1]));
+
                         })
                         .withAdListener(new AdListener() {
                             @Override
                             public void onAdFailedToLoad(@NonNull LoadAdError adError) {
                                 // Code to be executed when an ad request fails.
-                                emitSignal("native_ad_failed_to_load", adError.getCode());
+                                emitSignal("native_failed_to_load", adError.getCode());
                                 aNativeAdLoaded = false;
                             }
                             @Override
                             public void onAdOpened() {
                                 // Code to be executed when the ad is displayed.
-                                emitSignal("native_ad_opened");
+                                emitSignal("native_opened");
                             }
                             @Override
                             public void onAdClicked() {
                                 // Code to be executed when the native ad is closed.
-                                emitSignal("native_ad_clicked");
+                                emitSignal("native_clicked");
                             }
                             @Override
                             public void onAdClosed() {
                                 // Code to be executed when the native ad is closed.
-                                emitSignal("native_ad_closed");
+                                emitSignal("native_closed");
                             }
                             @Override
                             public void onAdImpression() {
                                 // Code to be executed when the user is about to return
                                 // to the app after tapping on an ad.
-                                emitSignal("native_ad_recorded_impression");
+                                emitSignal("native_recorded_impression");
                             }
                         })
                         .build();
                 adLoader.loadAd(getAdRequest());
+            }
+        });
+    }
+    @UsedByGodot
+    public void show_native()
+    {
+        aActivity.runOnUiThread(() -> {
+            if (aIsInitialized && aNativeAd != null) {
+                if (aAdView != null) destroy_banner();
+                if (aNativeAdView.getVisibility() != View.VISIBLE){
+                    aNativeAdView.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+    @UsedByGodot
+    public void hide_native()
+    {
+        aActivity.runOnUiThread(() -> {
+            if (aIsInitialized && aNativeAd != null) {
+                if (aNativeAdView.getVisibility() != View.GONE){
+                    aNativeAdView.setVisibility(View.GONE);
+                }
             }
         });
     }
@@ -822,7 +852,7 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
                     aNativeAdView = null;
                     aNativeAd.destroy();
                     aNativeAd = null;
-                    emitSignal("native_ad_destroyed");
+                    emitSignal("native_destroyed");
                     aNativeAdLoaded = false;
                 }
             }
@@ -830,9 +860,20 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     }
     private void mapNativeAdToLayout(NativeAd adFromGoogle, NativeAdView myAdView)
     {
-        myAdView.setMediaView((MediaView) myAdView.findViewById(R.id.ad_media));
+        myAdView.setMediaView(myAdView.findViewById(R.id.ad_media));
         myAdView.setNativeAd(adFromGoogle);
     }
+
+    private Point getScreenSize()
+    {
+        Display display = getActivity().getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+
+        display.getSize(size);
+
+        return size;
+    }
+
     //NATIVE ADS
 
     /**
