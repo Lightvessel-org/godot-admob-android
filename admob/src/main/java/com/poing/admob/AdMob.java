@@ -32,11 +32,9 @@ import com.google.android.ump.ConsentRequestParameters;
 import com.google.android.ump.UserMessagingPlatform;
 
 import android.app.Activity;
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.Gravity;
@@ -770,9 +768,6 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
                             aNativeAd = nativeAd;
                             aNativeAdView = (NativeAdView) aActivity.getLayoutInflater().inflate(R.layout.ad_native, null);
                             mapNativeAdToLayout(aNativeAd, aNativeAdView);
-
-                            Point screenSize = getScreenSize();
-
                             aGodotLayoutParams = new FrameLayout.LayoutParams((int) (pSize[0]), (int) (pSize[1]));
                             aGodotLayoutParams.setMargins((int) (pMargins[0]), (int) (pMargins[1]), 0, 0);
                             aGodotLayout.removeAllViews();
@@ -780,8 +775,6 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
                             hide_native();
                             emitSignal("native_loaded");
                             aNativeAdLoaded = true;
-                            Log.d("AdMob", "Screen size is: x:" + screenSize.x + " y:" + screenSize.y);
-                            Log.d("AdMob", "Native ad stats are: x:" + (int) (pMargins[0]) + " y:" + (int) (pMargins[1]) + " w:" + (int) (pSize[0]) + " h:" + (int) (pSize[1]));
 
                         })
                         .withAdListener(new AdListener() {
@@ -862,16 +855,6 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
     {
         myAdView.setMediaView(myAdView.findViewById(R.id.ad_media));
         myAdView.setNativeAd(adFromGoogle);
-    }
-
-    private Point getScreenSize()
-    {
-        Display display = getActivity().getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-
-        display.getSize(size);
-
-        return size;
     }
 
     //NATIVE ADS
