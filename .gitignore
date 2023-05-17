@@ -1,42 +1,17 @@
-# Godot-specific ignores
-.import/
-export.cfg
-export_presets.cfg
+*.iml
+.gradle
+/.idea/**/*.*
+!/.idea/codeStyles/**/*.*
+!/.idea/fileTemplates/**/*.*
 
-# Mono-specific ignores
-.mono/
-data_*/
-*.pyc
-
-ios/extracted_headers
-ios/godot
-ios/bin
-ios/plugin/admob/lib
-
-
-.DS_Store
-
-*.idea
-*.gradle
-!build.gradle
-!settings.gradle
-build/
-local.properties
+build
+/build
+/reports
 *.aar
 
-*.a
-*.o
-*.d
-*.hmap
-*.yaml
-*.dia
-*.xcbuild
-*.db
-*.LinkFileList
-*BuildDescriptionCacheIndex*
-*.xcuserstate
-*.dblite
-*ios*.zip
-*android*.zip
-
-ios/.sconsign.dblite
+/local.properties
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+local.properties

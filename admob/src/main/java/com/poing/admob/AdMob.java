@@ -1,6 +1,7 @@
 package com.poing.admob;
 
 import org.godotengine.godot.Godot;
+import org.godotengine.godot.plugin.GodotPlugin;
 import org.godotengine.godot.plugin.SignalInfo;
 import org.godotengine.godot.plugin.UsedByGodot;
 
@@ -21,6 +22,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.gms.ads.RequestConfiguration;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdView;
+import com.google.android.gms.ads.nativead.NativeAdViewHolder;
 import com.google.android.gms.ads.rewarded.RewardedAd; //rewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 
@@ -53,8 +55,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
-public class
-AdMob extends org.godotengine.godot.plugin.GodotPlugin {
+public class AdMob extends GodotPlugin {
 
     private boolean aIsInitialized = false;
     private Activity aActivity;
@@ -776,7 +777,6 @@ AdMob extends org.godotengine.godot.plugin.GodotPlugin {
                             hide_native();
                             emitSignal("native_loaded");
                             aNativeAdLoaded = true;
-
                         })
                         .withAdListener(new AdListener() {
                             @Override
