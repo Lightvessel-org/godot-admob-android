@@ -22,7 +22,6 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.gms.ads.RequestConfiguration;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdView;
-import com.google.android.gms.ads.nativead.NativeAdViewHolder;
 import com.google.android.gms.ads.rewarded.RewardedAd; //rewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 
@@ -590,7 +589,6 @@ public class AdMob extends GodotPlugin {
                             emitSignal("interstitial_opened");
                         }
                     });
-
                     aInterstitialAd.show(aActivity);
                 }
             }
